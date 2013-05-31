@@ -11,6 +11,7 @@ use autodie;
 use feature 'say';
 use List::Util 'sum';
 
+my $observed_cutoff = 8;
 my $af1_min = 0.3;
 my $af1_max = 1 - $af1_min;
 
@@ -28,13 +29,16 @@ while (<$vcf_fh>) {
     next unless length ($ref) + length ($alt) == 2;
     my ( $af1, $dp4_ref, $dp4_alt ) = $info =~ m/AF1=([^;]+);.+DP4=(\d+,\d+),(\d+,\d+)/;
     next unless $af1 < $af1_max && $af1 > $af1_min;
+    my $observed = 0;
+    for (@samples) { $observed++ unless m|:0,0,0:|; }
+    next if $observed < $observed_cutoff;
     dp4_counter($dp4_ref);
     dp4_counter($dp4_alt);
     my $ref_counts = dp4_counter($dp4_ref);
     my $alt_counts = dp4_counter($dp4_alt);
     my $tot_counts = sum $ref_counts, $alt_counts;
     say $summary_fh join "\t", $chr, $pos, $ref, $alt, $ref_counts,
-      $alt_counts, $tot_counts, $af1;
+      $alt_counts, $tot_counts, $af1, $observed;
 }
 
 close $vcf_fh;
