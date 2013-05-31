@@ -12,8 +12,8 @@ use feature 'say';
 use List::Util 'sum';
 
 my $observed_cutoff = 8;
-my $af1_min = 0.3;
-my $af1_max = 1 - $af1_min;
+my $af1_min         = 0.3;
+my $af1_max         = 1 - $af1_min;
 
 my $vcf_file = $ARGV[0];    # "10k.rep_08.E.var.flt.vcf";
 open my $vcf_fh, "<", $vcf_file;
@@ -22,16 +22,29 @@ my $summary_file = $vcf_file . ".summary";
 open my $summary_fh, ">", $summary_file;
 
 while (<$vcf_fh>) {
+
+    # ignore header
     next if m|^#|;
+
     chomp;
     my ( $chr, $pos, $id, $ref, $alt, $qual, $filter, $info, @samples ) =
       split /\t/;
-    next unless length ($ref) + length ($alt) == 2;
-    my ( $af1, $dp4_ref, $dp4_alt ) = $info =~ m/AF1=([^;]+);.+DP4=(\d+,\d+),(\d+,\d+)/;
+
+    # ignore INDELs and multiple alternate alleles
+    next unless length($ref) + length($alt) == 2;
+
+    my ( $af1, $dp4_ref, $dp4_alt ) =
+      $info =~ m/AF1=([^;]+);.+DP4=(\d+,\d+),(\d+,\d+)/;
+
+    # ignore AF1 values too far from 0.5
     next unless $af1 < $af1_max && $af1 > $af1_min;
+
     my $observed = 0;
     for (@samples) { $observed++ unless m|:0,0,0:|; }
+
+    # ignore SNPs with coverage in too few samples
     next if $observed < $observed_cutoff;
+
     dp4_counter($dp4_ref);
     dp4_counter($dp4_alt);
     my $ref_counts = dp4_counter($dp4_ref);
