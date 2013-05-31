@@ -23,14 +23,14 @@ while (<$vcf_fh>) {
     my ( $chr, $pos, $id, $ref, $alt, $qual, $filter, $info, @samples ) =
       split /\t/;
     next unless length ($ref) + length ($alt) == 2;
-    my ( $dp4_ref, $dp4_alt ) = $info =~ m/DP4=(\d+,\d+),(\d+,\d+)/;
+    my ( $af1, $dp4_ref, $dp4_alt ) = $info =~ m/AF1=([^;]+);.+DP4=(\d+,\d+),(\d+,\d+)/;
     dp4_counter($dp4_ref);
     dp4_counter($dp4_alt);
     my $ref_counts = dp4_counter($dp4_ref);
     my $alt_counts = dp4_counter($dp4_alt);
     my $tot_counts = sum $ref_counts, $alt_counts;
     say $summary_fh join "\t", $chr, $pos, $ref, $alt, $ref_counts,
-      $alt_counts, $tot_counts;
+      $alt_counts, $tot_counts, $af1;
 }
 
 close $vcf_fh;
