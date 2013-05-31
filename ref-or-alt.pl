@@ -1,0 +1,65 @@
+#!/usr/bin/env perl
+# ref-or-alt.pl
+# Mike Covington
+# created: 2013-05-31
+#
+# Description:
+#
+use strict;
+use warnings;
+use autodie;
+use feature 'say';
+
+my $chr = "A01";
+my $pos = 8918;
+my $alt = "A";
+# my $ref = "C";
+my $par1_id = "R500";
+my $par1_bam = "bwa_tophat_RIL_R500.12-Brapa0830.sorted.dupl_rm.xt_a_u_q20.bam";
+my $ref_fa = "B.rapa_genome_sequence_0830.fa";
+my $line = `/Users/mfc/installs/bin/samtools mpileup -r $chr:$pos-$pos -f $ref_fa $par1_bam`;
+
+my ( $chr2, $pos2, $ref, $depth, $bases, $quals ) = split /\t/, $line;
+my $alt_count = count_base( $bases, $alt );
+my $ref_count = count_base( $bases );
+
+say " $chr, $pos, $ref, $depth, $bases, $quals ";
+say "ref count: $ref_count";
+say "alt count: $alt_count";
+
+if ( $ref_count == $depth ) {
+    say "$par1_id is $ref at $chr:$pos";
+}
+elsif ($alt_count == $depth ) {
+    say "$par1_id is $alt at $chr:$pos";
+}
+else { say "$par1_id is ambiguous at $chr:$pos" }
+
+
+sub count_base {
+    my ( $bases, $base2count ) = @_;
+
+    my $count;
+    if ( defined $base2count ) {
+        if    ( $base2count =~ /A/i ) { $count = $bases =~ tr|Aa|Aa| }
+        elsif ( $base2count =~ /C/i ) { $count = $bases =~ tr|Cc|Cc| }
+        elsif ( $base2count =~ /G/i ) { $count = $bases =~ tr|Gg|Gg| }
+        elsif ( $base2count =~ /T/i ) { $count = $bases =~ tr|Tt|Tt| }
+    }
+    else {
+        $count += $bases =~ tr|<>.,|<>.,|;
+    }
+
+    return $count;
+}
+
+__END__
+
+[mpileup] 1 samples in 1 input files
+<mpileup> Set max per-file depth to 8000
+ A01, 8918, C, 15, >>><<>>><<><>aA, IJGGHJJJJIJEH&$
+
+ref count: 13
+alt count: 2
+R500 is ambiguous at A01:8918
+[Finished in 0.4s]
