@@ -42,3 +42,21 @@ say "conflict: ", scalar keys %conflict;
 use Data::Printer;
 
 p %conflict;
+
+__END__
+
+$ time ./merge-vcf-summaries.pl A01.rep_01.E.var.flt.vcf.summary A01.rep_02.E.var.flt.vcf.summary A01.rep_03.E.var.flt.vcf.summary
+merged: 21174
+count: 21174
+conflict: 5
+{
+    A01.11050720   1,
+    A01.13174070   1,
+    A01.27153976   1,
+    A01.27269486   1,
+    A01.27741024   1
+}
+
+real    0m0.198s
+user    0m0.184s
+sys 0m0.013s
