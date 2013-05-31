@@ -11,6 +11,9 @@ use autodie;
 use feature 'say';
 use List::Util 'sum';
 
+my $af1_min = 0.3;
+my $af1_max = 1 - $af1_min;
+
 my $vcf_file = $ARGV[0];    # "10k.rep_08.E.var.flt.vcf";
 open my $vcf_fh, "<", $vcf_file;
 
@@ -24,6 +27,7 @@ while (<$vcf_fh>) {
       split /\t/;
     next unless length ($ref) + length ($alt) == 2;
     my ( $af1, $dp4_ref, $dp4_alt ) = $info =~ m/AF1=([^;]+);.+DP4=(\d+,\d+),(\d+,\d+)/;
+    next unless $af1 < $af1_max && $af1 > $af1_min;
     dp4_counter($dp4_ref);
     dp4_counter($dp4_alt);
     my $ref_counts = dp4_counter($dp4_ref);
