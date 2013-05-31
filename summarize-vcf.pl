@@ -22,6 +22,7 @@ while (<$vcf_fh>) {
     chomp;
     my ( $chr, $pos, $id, $ref, $alt, $qual, $filter, $info, @samples ) =
       split /\t/;
+    next unless length ($ref) + length ($alt) == 2;
     my ( $dp4_ref, $dp4_alt ) = $info =~ m/DP4=(\d+,\d+),(\d+,\d+)/;
     dp4_counter($dp4_ref);
     dp4_counter($dp4_alt);
