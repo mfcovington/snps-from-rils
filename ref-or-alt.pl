@@ -16,21 +16,16 @@ my $count = 0;
 while (<$summary_fh>) {
     my ( $chr, $pos, $ref_vcf, $alt ) = split /\t/;
     ref_or_alt( $chr, $pos, $alt );
-    exit if $count++ == 10;
+    exit if ++$count == 2;
 }
-
-# my $chr = "A01";
-# my $pos = 1537695;
-# my $alt = "T";
-# my $ref = "C";
 
 sub ref_or_alt {
 
     my ( $chr, $pos, $alt ) = @_;
 
     my $par1_id  = "R500";
-    my $par1_bam = "R500.good.bam"; # "bwa_tophat_RIL_IMB211.03-Brapa0830.sorted.dupl_rm.xt_a_u_q20.bam";
-    my $ref_fa = "B.rapa_genome_sequence_0830.fa";
+    my $par1_bam = "R500.good.bam";
+    my $ref_fa   = "B.rapa_genome_sequence_0830.fa";
 
     my $line;
     capture_stderr {
@@ -41,9 +36,10 @@ sub ref_or_alt {
     return if $line eq "";
 
     my ( $chr2, $pos2, $ref, $depth, $bases, $quals ) = split /\t/, $line;
-    my $skip_count = count_skips($bases);
-    my $alt_count  = count_base( $bases, $alt );
-    my $ref_count  = count_base($bases);
+    my $skip_count  = count_skips($bases);
+    my $alt_count   = count_base( $bases, $alt );
+    my $ref_count   = count_base($bases);
+    my $total_count = $ref_count + $alt_count;
 
     print "\n$chr\t$pos\t$ref\t$depth\t$bases\t$quals";
     say "ref count: $ref_count";
@@ -51,17 +47,10 @@ sub ref_or_alt {
     say "skip count: $skip_count";
     $depth = $depth - $skip_count;
 
-    if ( $ref_count + $alt_count == 0 ) {
-        say "Insufficient coverage at $chr:$pos";
-    }
-    elsif ( $ref_count == $depth ) {
-        say "$par1_id is $ref at $chr:$pos";
-    }
-    elsif ( $alt_count == $depth ) {
-        say "$par1_id is $alt at $chr:$pos";
-    }
-    else { say "$par1_id is ambiguous at $chr:$pos" }
-
+    if    ( $total_count == 0 )    { say "Insufficient coverage at $chr:$pos" }
+    elsif ( $ref_count == $depth ) { say "$par1_id is $ref at $chr:$pos" }
+    elsif ( $alt_count == $depth ) { say "$par1_id is $alt at $chr:$pos" }
+    else                           { say "$par1_id is ambiguous at $chr:$pos" }
 }
 
 sub count_skips {
@@ -88,11 +77,15 @@ sub count_base {
 
 __END__
 
-[mpileup] 1 samples in 1 input files
-<mpileup> Set max per-file depth to 8000
- A01, 8918, C, 15, >>><<>>><<><>aA, IJGGHJJJJIJEH&$
+A01 5245    A   4   ,.,.    aaaa
+ref count: 4
+alt count: 0
+skip count: 0
+R500 is A at A01:5245
 
-ref count: 13
-alt count: 2
-R500 is ambiguous at A01:8918
-[Finished in 0.4s]
+A01 5283    T   5   cCcCC   *.*+!
+ref count: 0
+alt count: 5
+skip count: 0
+R500 is C at A01:5283
+[Finished in 0.8s]
