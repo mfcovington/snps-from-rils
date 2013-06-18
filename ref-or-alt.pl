@@ -36,6 +36,11 @@ elsif ($alt_count == $depth ) {
 else { say "$par1_id is ambiguous at $chr:$pos" }
 
 
+sub count_skips {
+    my $bases = shift;
+    return $bases =~ tr|<>|<>|;
+}
+
 sub count_base {
     my ( $bases, $base2count ) = @_;
 
@@ -47,7 +52,7 @@ sub count_base {
         elsif ( $base2count =~ /T/i ) { $count = $bases =~ tr|Tt|Tt| }
     }
     else {
-        $count += $bases =~ tr|<>.,|<>.,|;
+        $count += $bases =~ tr|.,|.,|;
     }
 
     return $count;
