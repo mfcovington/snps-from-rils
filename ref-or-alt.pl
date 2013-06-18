@@ -9,6 +9,7 @@ use strict;
 use warnings;
 use autodie;
 use feature 'say';
+use Capture::Tiny 'capture_stderr';
 
 my $chr = "A01";
 my $pos = 8918;
@@ -17,7 +18,11 @@ my $alt = "A";
 my $par1_id = "R500";
 my $par1_bam = "bwa_tophat_RIL_R500.12-Brapa0830.sorted.dupl_rm.xt_a_u_q20.bam";
 my $ref_fa = "B.rapa_genome_sequence_0830.fa";
-my $line = `/Users/mfc/installs/bin/samtools mpileup -r $chr:$pos-$pos -f $ref_fa $par1_bam`;
+
+my $line;
+capture_stderr{ $line = `/Users/mfc/installs/bin/samtools mpileup -r $chr:$pos-$pos -f $ref_fa $par1_bam` };
+
+return if $line eq "";
 
 my ( $chr2, $pos2, $ref, $depth, $bases, $quals ) = split /\t/, $line;
 my $skip_count = count_skips( $bases );
