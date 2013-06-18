@@ -11,41 +11,58 @@ use autodie;
 use feature 'say';
 use Capture::Tiny 'capture_stderr';
 
-my $chr = "A01";
-my $pos = 8918;
-my $alt = "A";
+open my $summary_fh, "<", "A01.rep_01.E.var.flt.vcf.summary";
+my $count = 0;
+while (<$summary_fh>) {
+    my ( $chr, $pos, $ref_vcf, $alt ) = split /\t/;
+    ref_or_alt( $chr, $pos, $alt );
+    exit if $count++ == 10;
+}
+
+# my $chr = "A01";
+# my $pos = 1537695;
+# my $alt = "T";
 # my $ref = "C";
-my $par1_id = "R500";
-my $par1_bam = "bwa_tophat_RIL_R500.12-Brapa0830.sorted.dupl_rm.xt_a_u_q20.bam";
-my $ref_fa = "B.rapa_genome_sequence_0830.fa";
 
-my $line;
-capture_stderr{ $line = `/Users/mfc/installs/bin/samtools mpileup -r $chr:$pos-$pos -f $ref_fa $par1_bam` };
+sub ref_or_alt {
 
-return if $line eq "";
+    my ( $chr, $pos, $alt ) = @_;
 
-my ( $chr2, $pos2, $ref, $depth, $bases, $quals ) = split /\t/, $line;
-my $skip_count = count_skips( $bases );
-my $alt_count = count_base( $bases, $alt );
-my $ref_count = count_base( $bases );
+    my $par1_id  = "R500";
+    my $par1_bam = "R500.good.bam"; # "bwa_tophat_RIL_IMB211.03-Brapa0830.sorted.dupl_rm.xt_a_u_q20.bam";
+    my $ref_fa = "B.rapa_genome_sequence_0830.fa";
 
-print "\n$chr\t$pos\t$ref\t$depth\t$bases\t$quals";
-say "ref count: $ref_count";
-say "alt count: $alt_count";
-say "skip count: $skip_count";
-$depth = $depth - $skip_count;
+    my $line;
+    capture_stderr {
+        $line =
+`/Users/mfc/installs/bin/samtools mpileup -r $chr:$pos-$pos -f $ref_fa $par1_bam`;
+    };
 
-if ( $ref_count + $alt_count == 0 ) {
-    say "Insufficient coverage at $chr:$pos";
+    return if $line eq "";
+
+    my ( $chr2, $pos2, $ref, $depth, $bases, $quals ) = split /\t/, $line;
+    my $skip_count = count_skips($bases);
+    my $alt_count  = count_base( $bases, $alt );
+    my $ref_count  = count_base($bases);
+
+    print "\n$chr\t$pos\t$ref\t$depth\t$bases\t$quals";
+    say "ref count: $ref_count";
+    say "alt count: $alt_count";
+    say "skip count: $skip_count";
+    $depth = $depth - $skip_count;
+
+    if ( $ref_count + $alt_count == 0 ) {
+        say "Insufficient coverage at $chr:$pos";
+    }
+    elsif ( $ref_count == $depth ) {
+        say "$par1_id is $ref at $chr:$pos";
+    }
+    elsif ( $alt_count == $depth ) {
+        say "$par1_id is $alt at $chr:$pos";
+    }
+    else { say "$par1_id is ambiguous at $chr:$pos" }
+
 }
-elsif ( $ref_count == $depth ) {
-    say "$par1_id is $ref at $chr:$pos";
-}
-elsif ($alt_count == $depth ) {
-    say "$par1_id is $alt at $chr:$pos";
-}
-else { say "$par1_id is ambiguous at $chr:$pos" }
-
 
 sub count_skips {
     my $bases = shift;
