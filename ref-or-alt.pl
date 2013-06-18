@@ -20,14 +20,20 @@ my $ref_fa = "B.rapa_genome_sequence_0830.fa";
 my $line = `/Users/mfc/installs/bin/samtools mpileup -r $chr:$pos-$pos -f $ref_fa $par1_bam`;
 
 my ( $chr2, $pos2, $ref, $depth, $bases, $quals ) = split /\t/, $line;
+my $skip_count = count_skips( $bases );
 my $alt_count = count_base( $bases, $alt );
 my $ref_count = count_base( $bases );
 
-say " $chr, $pos, $ref, $depth, $bases, $quals ";
+print "\n$chr\t$pos\t$ref\t$depth\t$bases\t$quals";
 say "ref count: $ref_count";
 say "alt count: $alt_count";
+say "skip count: $skip_count";
+$depth = $depth - $skip_count;
 
-if ( $ref_count == $depth ) {
+if ( $ref_count + $alt_count == 0 ) {
+    say "Insufficient coverage at $chr:$pos";
+}
+elsif ( $ref_count == $depth ) {
     say "$par1_id is $ref at $chr:$pos";
 }
 elsif ($alt_count == $depth ) {
