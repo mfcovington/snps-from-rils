@@ -12,23 +12,35 @@ use feature 'say';
 use List::Util 'max';
 use Capture::Tiny 'capture_stderr';
 use Parallel::ForkManager;
+use Getopt::Long;
 use Data::Printer;
 
 # TODO:
 # - quality score cutoff??
-# - getopts
-
-my @vcf_summary_files = @ARGV;
+# - specify chromosomes
 
 my $verbose             = 1;
 my $replicate_count_min = 2;
-my $min_ratio           = 0.9;
+my $ratio_min           = 0.9;
 my $threads             = 3;
 
 my $par1_id  = "R500";
 my $par2_id  = "IMB211";
 my $par1_bam = "R500.good.bam";
 my $ref_fa   = "B.rapa_genome_sequence_0830.fa";
+
+my $options = GetOptions(
+    "par1_id=s"             => \$par1_id,
+    "par2_id=s"             => \$par2_id,
+    "par1_bam=s"            => \$par1_bam,
+    "ref_fa=s"              => \$ref_fa,
+    "verbose=f"             => \$verbose,
+    "replicate_count_min=i" => \$replicate_count_min,
+    "ratio_min=f"           => \$ratio_min,
+    "threads=i"             => \$threads,
+);
+
+my @vcf_summary_files = @ARGV;
 
 my %merged;
 my %repeated;
@@ -117,8 +129,8 @@ sub get_alt_genotype {
 
     my $alt_genotype;
     if    ( $depth == 0 )                            { $alt_genotype = '' }
-    elsif ( $par1_alt_count >= $min_ratio * $depth ) { $alt_genotype = $par1_id }
-    elsif ( $par1_ref_count >= $min_ratio * $depth ) { $alt_genotype = $par2_id }
+    elsif ( $par1_alt_count >= $ratio_min * $depth ) { $alt_genotype = $par1_id }
+    elsif ( $par1_ref_count >= $ratio_min * $depth ) { $alt_genotype = $par2_id }
     else                                             { $alt_genotype = '' }
 
     return $alt_genotype;
