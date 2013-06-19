@@ -11,7 +11,8 @@ use autodie;
 use feature 'say';
 use Capture::Tiny 'capture_stderr';
 
-my $verbose = 1;
+my $verbose   = 1;
+my $min_ratio = 0.9;
 
 open my $summary_fh, "<", "A01.rep_01.E.var.flt.vcf.summary";
 my $count = 0;
@@ -41,19 +42,18 @@ sub ref_or_alt {
     my $skip_count  = count_skips($bases);
     my $alt_count   = count_base( $bases, $alt );
     my $ref_count   = count_base($bases);
-    my $total_count = $ref_count + $alt_count;
 
     if ($verbose) {
         print "\n$chr\t$pos\t$ref\t$depth\t$bases\t$quals";
-        say "ref count: $ref_count";
-        say "alt count: $alt_count";
+        say "ref count:  $ref_count";
+        say "alt count:  $alt_count";
         say "skip count: $skip_count";
         $depth = $depth - $skip_count;
 
-        if    ( $total_count == 0 )    { say "Insufficient coverage at $chr:$pos" }
-        elsif ( $ref_count == $depth ) { say "$par1_id is $ref at $chr:$pos" }
-        elsif ( $alt_count == $depth ) { say "$par1_id is $alt at $chr:$pos" }
-        else                           { say "$par1_id is ambiguous at $chr:$pos" }
+        if    ( $depth == 0 )                       { say "Insufficient coverage at $chr:$pos" }
+        elsif ( $ref_count >= $min_ratio * $depth ) { say "$par1_id is $ref at $chr:$pos" }
+        elsif ( $alt_count >= $min_ratio * $depth ) { say "$par1_id is $alt at $chr:$pos" }
+        else                                        { say "$par1_id is ambiguous at $chr:$pos" }
     }
 }
 
