@@ -29,12 +29,11 @@ for my $file (@vcf_summary_files) {
     # merge_summaries(\$summary_fh, \%merged);
     while ( <$summary_fh> ) {
         my ( $chr, $pos, $ref, $alt ) = split /\t/;
-        my $chr_pos = "$chr.$pos";
-        my $ref_alt = "$ref.$alt";
         $conflict{$chr}{$pos} = 1
           if exists $merged{$chr}{$pos}
-          && $merged{$chr}{$pos} ne $ref_alt;
-        $merged{$chr}{$pos} = $ref_alt;
+          && $merged{$chr}{$pos}{alt} ne $alt;
+        $merged{$chr}{$pos}{ref} = $ref;
+        $merged{$chr}{$pos}{alt} = $alt;
         $repeated{$chr}{$pos}++;
     }
     close $summary_fh;
@@ -44,7 +43,7 @@ my %counts;
 $counts{merged}   += scalar keys $merged{$_}   for keys %merged;
 $counts{repeated} += scalar keys $repeated{$_} for keys %repeated;
 $counts{conflict} += scalar keys $conflict{$_} for keys %conflict;
-say "merged: ",   $counts{merged};
+say "merged:   ", $counts{merged};
 say "repeated: ", $counts{repeated};
 say "conflict: ", $counts{conflict};
 
@@ -65,19 +64,30 @@ p %conflict;
 
 __END__
 
-$ time ./merge-vcf-summaries.pl A01.rep_01.E.var.flt.vcf.summary A01.rep_02.E.var.flt.vcf.summary A01.rep_03.E.var.flt.vcf.summary
-merged: 21174
-replicate count: 21174
-conflict: 5
-merged (after conflict removal and replicate count filtering): 12060
+$ time ./merge-vcf-summaries.pl A01.rep_*.E.var.flt.vcf.summary
+merged:   33149
+repeated: 33149
+conflict: 13
+merged (after conflict removal and repeat count filtering): 23252
 {
-    A01.11050720   1,
-    A01.13174070   1,
-    A01.27153976   1,
-    A01.27269486   1,
-    A01.27741024   1
+    A01   {
+        5718644    1,
+        8030298    1,
+        10834898   1,
+        11050720   1,
+        13174070   1,
+        13531866   1,
+        21716037   1,
+        22878676   1,
+        24525675   1,
+        27153976   1,
+        27154874   1,
+        27269486   1,
+        27747204   1
+    }
 }
 
-real    0m0.229s
-user    0m0.213s
-sys 0m0.014s
+real    0m0.615s
+user    0m0.510s
+sys 0m0.026s
+
