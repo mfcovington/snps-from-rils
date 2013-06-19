@@ -16,7 +16,6 @@ use Data::Printer;
 
 # TODO:
 # - quality score cutoff??
-# - check samtools stderr for relevant error!
 # - getopts
 
 my @vcf_summary_files = @ARGV;
@@ -79,9 +78,10 @@ my $pm = new Parallel::ForkManager($threads);
 for my $cur_chr ( @chromosomes ) {
     $pm->start and next;
 
+    system("samtools index $par1_bam") if ! -e "$par1_bam.bai";
     my $mpileup_cmd = "samtools mpileup -r $cur_chr -f $ref_fa $par1_bam";
     my $mpileup_fh;
-    my $stderr = capture_stderr {    # suppress mpileup output sent to stderr
+    capture_stderr {    # suppress mpileup output sent to stderr
         open $mpileup_fh,   "-|", $mpileup_cmd;
     };
 
