@@ -12,42 +12,53 @@ use feature 'say';
 use List::Util 'max';
 
 my @vcf_summary_files = @ARGV;
-
 my $replicate_count_min = 2;
 
+my $par1_id = "R500";
+my $par2_id = "IMB211";
+my $par1_bam = "bwa_tophat_RIL_R500.12-Brapa0830.sorted.dupl_rm.xt_a_u_q20.bam";
+
+#TODO::  incorporate ref-or-alt
+
 my %merged;
-my %replicate_count;
+my %repeated;
 my %conflict;
 
-for my $file ( @vcf_summary_files ) {
+for my $file (@vcf_summary_files) {
     open my $summary_fh, "<", $file;
     # merge_summaries(\$summary_fh, \%merged);
     while ( <$summary_fh> ) {
         my ( $chr, $pos, $ref, $alt ) = split /\t/;
         my $chr_pos = "$chr.$pos";
         my $ref_alt = "$ref.$alt";
-        $conflict{$chr_pos} = 1
-          if exists $merged{$chr_pos}
-          && $merged{$chr_pos} ne $ref_alt;
-        $merged{$chr_pos} = $ref_alt;
-        $replicate_count{$chr_pos}++;
+        $conflict{$chr}{$pos} = 1
+          if exists $merged{$chr}{$pos}
+          && $merged{$chr}{$pos} ne $ref_alt;
+        $merged{$chr}{$pos} = $ref_alt;
+        $repeated{$chr}{$pos}++;
     }
     close $summary_fh;
 }
 
-say "merged: ", scalar keys %merged;
-say "replicate_count: ", scalar keys %replicate_count;
-say "conflict: ", scalar keys %conflict;
+my %counts;
+$counts{merged}   += scalar keys $merged{$_}   for keys %merged;
+$counts{repeated} += scalar keys $repeated{$_} for keys %repeated;
+$counts{conflict} += scalar keys $conflict{$_} for keys %conflict;
+say "merged: ",   $counts{merged};
+say "repeated: ", $counts{repeated};
+say "conflict: ", $counts{conflict};
 
-
-for ( keys %merged ) {
-    delete $merged{$_}
-      if exists $conflict{$_}
-      || $replicate_count{$_} < $replicate_count_min;
-    my ( $chr, $pos ) = split /\./, $_;
+for my $chr ( keys %merged ) {
+    for my $pos ( keys $merged{$chr}) {
+        delete $merged{$chr}{$pos}
+          if exists $conflict{$chr}{$pos}
+          || $repeated{$chr}{$pos} < $replicate_count_min;
+    }
 }
 
-say "merged (after conflict removal and replicate count filtering): ", scalar keys %merged;
+$counts{merged_filtered} += scalar keys $merged{$_} for keys %merged;
+
+say "merged (after conflict removal and repeat count filtering): ", $counts{merged_filtered};
 
 use Data::Printer;
 p %conflict;
