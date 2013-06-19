@@ -17,17 +17,19 @@ use Data::Printer;
 
 # TODO:
 # - quality score cutoff??
-# - specify chromosomes
+# - get chromosome lengths from bam header for use in SNP density stats??
+# - usage statement
 
 my $verbose             = 1;
 my $replicate_count_min = 2;
 my $ratio_min           = 0.9;
 my $threads             = 3;
 
-my $par1_id  = "R500";
-my $par2_id  = "IMB211";
-my $par1_bam = "R500.good.bam";
-my $ref_fa   = "B.rapa_genome_sequence_0830.fa";
+my $par1_id    = "R500";
+my $par2_id    = "IMB211";
+my $par1_bam   = "R500.good.bam";
+my $ref_fa     = "B.rapa_genome_sequence_0830.fa";
+my $chr_string = "A01,A02,A03,A04,A05,A06,A07,A08,A09,A10";
 
 my $options = GetOptions(
     "par1_id=s"             => \$par1_id,
@@ -38,7 +40,10 @@ my $options = GetOptions(
     "replicate_count_min=i" => \$replicate_count_min,
     "ratio_min=f"           => \$ratio_min,
     "threads=i"             => \$threads,
+    "chr_string=s"          => \$chr_string,
 );
+
+my %chromosomes = map { $_ => 1 } split /,/, $chr_string;
 
 my @vcf_summary_files = @ARGV;
 
@@ -51,11 +56,16 @@ for my $file (@vcf_summary_files) {
     # merge_summaries(\$summary_fh, \%merged);
     while ( <$summary_fh> ) {
         my ( $chr, $pos, $ref, $alt ) = split /\t/;
+
+        next unless exists $chromosomes{$chr};
+
         $conflict{$chr}{$pos} = 1
           if exists $merged{$chr}{$pos}
           && $merged{$chr}{$pos}{alt} ne $alt;
+
         $merged{$chr}{$pos}{ref} = $ref;
         $merged{$chr}{$pos}{alt} = $alt;
+
         $repeated{$chr}{$pos}++;
     }
     close $summary_fh;
@@ -85,9 +95,8 @@ if ($verbose) {
     p %conflict;
 }
 
-my @chromosomes = qw( A01 A02 A03 A04 A05 A06 A07 A08 A09 A10 );
 my $pm = new Parallel::ForkManager($threads);
-for my $cur_chr ( @chromosomes ) {
+for my $cur_chr ( sort keys %chromosomes ) {
     $pm->start and next;
 
     system("samtools index $par1_bam") if ! -e "$par1_bam.bai";
