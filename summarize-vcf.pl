@@ -11,7 +11,7 @@ use autodie;
 use feature 'say';
 use List::Util 'sum';
 
-my $observed_cutoff = 8;
+my $observed_cutoff = 0.1;
 my $af1_min         = 0.3;
 my $af1_max         = 1 - $af1_min;
 
@@ -21,10 +21,19 @@ open my $vcf_fh, "<", $vcf_file;
 my $summary_file = $vcf_file . ".summary";
 open my $summary_fh, ">", $summary_file;
 
+my $sample_number;
+
 while (<$vcf_fh>) {
 
     # ignore header
-    next if m|^#|;
+    next if m|^##|;
+
+    # calculate number of samples
+    if (m|^#CHROM|) {
+        my @col_names = split /\t/;
+        $sample_number =
+          scalar @col_names - 9;    # Nine column headers precede sample IDs
+    }
 
     chomp;
     my ( $chr, $pos, $id, $ref, $alt, $qual, $filter, $info, @samples ) =
@@ -41,9 +50,10 @@ while (<$vcf_fh>) {
 
     my $observed = 0;
     for (@samples) { $observed++ unless m|:0,0,0:|; }
+    my $observed_ratio = sprintf "%.2f", $observed / $sample_number;
 
     # ignore SNPs with coverage in too few samples
-    next if $observed < $observed_cutoff;
+    next if $observed_ratio < $observed_cutoff;
 
     dp4_counter($dp4_ref);
     dp4_counter($dp4_alt);
@@ -51,7 +61,7 @@ while (<$vcf_fh>) {
     my $alt_counts = dp4_counter($dp4_alt);
     my $tot_counts = sum $ref_counts, $alt_counts;
     say $summary_fh join "\t", $chr, $pos, $ref, $alt, $ref_counts,
-      $alt_counts, $tot_counts, $af1, $observed;
+      $alt_counts, $tot_counts, $af1, $observed_ratio;
 }
 
 close $vcf_fh;
