@@ -36,7 +36,7 @@ my $options = GetOptions(
     "par2_id=s"             => \$par2_id,
     "par1_bam=s"            => \$par1_bam,
     "ref_fa=s"              => \$ref_fa,
-    "verbose=f"             => \$verbose,
+    "verbose"               => \$verbose,
     "replicate_count_min=i" => \$replicate_count_min,
     "ratio_min=f"           => \$ratio_min,
     "threads=i"             => \$threads,
