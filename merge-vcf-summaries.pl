@@ -115,6 +115,10 @@ for my $cur_chr ( sort keys %chromosomes ) {
 
         next unless exists $merged{$chr}{$pos};
 
+        my @inserts = $bases =~ m|\+|g;
+        my $insert_count = scalar @inserts;
+        next if $insert_count / $depth > 0.1;
+
         my $alt = $merged{$chr}{$pos}{alt};
         my $alt_genotype = get_alt_genotype( $chr, $pos, $ref, $alt, $depth, $bases );
         next if $alt_genotype eq '';
