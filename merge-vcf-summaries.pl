@@ -23,7 +23,7 @@ use Data::Printer;
 my $verbose             = 1;
 my $replicate_count_min = 2;
 my $ratio_min           = 0.9;
-my $threads             = 3;
+my $threads             = 1;
 
 my $par1_id    = "R500";
 my $par2_id    = "IMB211";
