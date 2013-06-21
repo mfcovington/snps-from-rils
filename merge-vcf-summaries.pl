@@ -13,7 +13,6 @@ use List::Util 'max';
 use Capture::Tiny 'capture_stderr';
 use Parallel::ForkManager;
 use Getopt::Long;
-use Data::Printer;
 
 # TODO:
 # - quality score cutoff??
@@ -23,7 +22,7 @@ use Data::Printer;
 my $verbose             = 1;
 my $replicate_count_min = 2;
 my $ratio_min           = 0.9;
-my $threads             = 3;
+my $threads             = 1;
 
 my $par1_id    = "R500";
 my $par2_id    = "IMB211";
@@ -36,7 +35,7 @@ my $options = GetOptions(
     "par2_id=s"             => \$par2_id,
     "par1_bam=s"            => \$par1_bam,
     "ref_fa=s"              => \$ref_fa,
-    "verbose=f"             => \$verbose,
+    "verbose"               => \$verbose,
     "replicate_count_min=i" => \$replicate_count_min,
     "ratio_min=f"           => \$ratio_min,
     "threads=i"             => \$threads,
@@ -92,7 +91,6 @@ if ($verbose) {
     say "conflict: ", $counts{conflict};
     say "merged (after conflict removal and repeat count filtering): ",
       $counts{merged_filtered};
-    p %conflict;
 }
 
 my $pm = new Parallel::ForkManager($threads);
@@ -113,11 +111,22 @@ for my $cur_chr ( sort keys %chromosomes ) {
         chomp;
         my ( $chr, $pos, $ref, $depth, $bases, $quals ) = split /\t/;
 
+        # ignore non-SNP positions
         next unless exists $merged{$chr}{$pos};
 
+        # ignore insertions
+        my @inserts = $bases =~ m|\+|g;
+        my $insert_count = scalar @inserts;
+        next if $insert_count / $depth > 0.1;
+
+        # get genotype for alternate allele
         my $alt = $merged{$chr}{$pos}{alt};
-        my $alt_genotype = get_alt_genotype( $chr, $pos, $ref, $alt, $depth, $bases );
+        my $alt_genotype =
+          get_alt_genotype( $chr, $pos, $ref, $alt, $depth, $bases );
+
+        # ignore ambiguous SNPs & SNPs w/ zero coverage on parent 1
         next if $alt_genotype eq '';
+
         say $polydb_fh join "\t", $chr, $pos, $ref, $alt, $alt_genotype, 'NA', 'SNP';
     }
     close $mpileup_fh;

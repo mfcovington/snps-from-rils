@@ -10,10 +10,16 @@ use warnings;
 use autodie;
 use feature 'say';
 use List::Util 'sum';
+use Getopt::Long;
 
 my $observed_cutoff = 0.1;
 my $af1_min         = 0.3;
 my $af1_max         = 1 - $af1_min;
+
+my $options = GetOptions (
+    "observed_cutoff=f" => \$observed_cutoff,
+    "af1_min=f" => \$af1_min,
+);
 
 my $vcf_file = $ARGV[0];    # "10k.rep_08.E.var.flt.vcf";
 open my $vcf_fh, "<", $vcf_file;
