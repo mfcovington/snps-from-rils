@@ -11,6 +11,19 @@ use autodie;
 use feature 'say';
 use List::Util 'sum';
 use Getopt::Long;
+use Capture::Tiny 'capture_stderr';
+use Parallel::ForkManager;
+
+my $threads   = 2;
+my $ratio_min = 0.9;    # proportion of reads matching major allele
+
+my $par1_id = "R500";
+my $par2_id = "IMB211";
+
+my $sample_dir = "/Users/mfc/git.repos/sample-files/";
+my $par1_bam   = "$sample_dir/bam/R500.good.bam";
+my $ref_fa     = "$sample_dir/fa/B.rapa_genome_sequence_0830.fa";
+
 
 my $observed_min  = 0.5;
 my $alt_ratio_min = 0.3;
@@ -31,6 +44,7 @@ my $summary_file = $vcf_file . ".summary";
 open my $summary_fh, ">", $summary_file;
 
 my $sample_number;
+my %genotype;
 
 while ( my $vcf_line = <$vcf_fh> ) {
 
@@ -98,9 +112,100 @@ while ( my $vcf_line = <$vcf_fh> ) {
     next unless $alt_ratio < $alt_ratio_max && $alt_ratio > $alt_ratio_min;
     say $summary_fh join "\t", $chr, $pos, $ref, $alt, $ref_count,
       $alt_count, $tot_count, $af1, $alt_ratio, $observed_ratio, $het_count, $het_ratio;
+
+
+    $genotype{$chr}{$pos}{ref} = $ref;
+    $genotype{$chr}{$pos}{alt} = $alt;
+
 }
 
 close $vcf_fh;
 close $summary_fh;
 
+
+
+my $pm = new Parallel::ForkManager($threads);
+for my $cur_chr ( sort keys %genotype ) {
+    $pm->start and next;
+
+    system("samtools index $par1_bam") if ! -e "$par1_bam.bai";
+    my $mpileup_cmd = "samtools mpileup -r $cur_chr -f $ref_fa $par1_bam";
+    my $mpileup_fh;
+    capture_stderr {    # suppress mpileup output sent to stderr
+        open $mpileup_fh,   "-|", $mpileup_cmd;
+    };
+
+    open my $polydb_fh, ">", "polyDB.$cur_chr";
+    say $polydb_fh join "\t", 'chr', 'pos', 'ref_base', 'snp_base', 'genotype', 'insert_position', 'SNP_CLASS';
+
+    while ( <$mpileup_fh> ) {
+        chomp;
+        my ( $chr, $pos, $ref, $depth, $bases, $quals ) = split /\t/;
+
+        # ignore non-SNP positions
+        next unless exists $genotype{$chr}{$pos};
+
+        # ignore insertions
+        my @inserts = $bases =~ m|\+|g;
+        my $insert_count = scalar @inserts;
+        next if $insert_count / $depth > 0.1;
+
+        # get genotype for alternate allele
+        my $alt = $genotype{$chr}{$pos}{alt};
+        my $alt_genotype =
+          get_alt_genotype( $chr, $pos, $ref, $alt, $depth, $bases );
+
+        # ignore ambiguous SNPs & SNPs w/ zero coverage on parent 1
+        next if $alt_genotype eq '';
+
+        say $polydb_fh join "\t", $chr, $pos, $ref, $alt, $alt_genotype, 'NA', 'SNP';
+    }
+    close $mpileup_fh;
+    close $polydb_fh;
+
+    $pm->finish;
+}
+$pm->wait_all_children;
+
+
 exit;
+
+
+sub get_alt_genotype {
+    my ( $chr, $pos, $ref, $alt, $depth, $bases ) = @_;
+
+    my $skip_count     = count_skips($bases);
+    my $par1_alt_count = count_base( $bases, $alt );
+    my $par1_ref_count = count_base($bases);
+
+    my $alt_genotype;
+    if    ( $depth == 0 )                            { $alt_genotype = '' }
+    elsif ( $par1_alt_count >= $ratio_min * $depth ) { $alt_genotype = $par1_id }
+    elsif ( $par1_ref_count >= $ratio_min * $depth ) { $alt_genotype = $par2_id }
+    else                                             { $alt_genotype = '' }
+
+    return $alt_genotype;
+}
+
+sub count_skips {
+    my $bases = shift;
+    return $bases =~ tr|<>|<>|;
+}
+
+sub count_base {
+    my ( $bases, $base2count ) = @_;
+
+    my $count;
+    if ( defined $base2count ) {
+        if    ( $base2count =~ /A/i ) { $count = $bases =~ tr|Aa|Aa| }
+        elsif ( $base2count =~ /C/i ) { $count = $bases =~ tr|Cc|Cc| }
+        elsif ( $base2count =~ /G/i ) { $count = $bases =~ tr|Gg|Gg| }
+        elsif ( $base2count =~ /T/i ) { $count = $bases =~ tr|Tt|Tt| }
+    }
+    else {
+        $count += $bases =~ tr|.,|.,|;
+    }
+
+    return $count;
+}
+
