@@ -12,12 +12,11 @@ use feature 'say';
 use List::Util 'sum';
 use Getopt::Long;
 
-# my $observed_min  = 0.1;
 my $observed_min  = 0.5;
 my $alt_ratio_min = 0.3;
 my $alt_ratio_max = 1 - $alt_ratio_min;
 my $depth_min     = 4;
-my $gq_min        = 5;
+my $gq_min        = 13;    # 10 ^ -1.3 == 0.0501
 my $het_ratio_max = 0.1;
 
 my $options = GetOptions(
