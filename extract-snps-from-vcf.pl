@@ -109,18 +109,15 @@ for my $vcf_file (@vcf_file_list) {
 
         my $tot_count = sum $ref_count, $alt_count;
         # say "oops $pos $het_count" if $tot_count == 0;
-        # say $summary_fh join "\t", $chr, $pos, $het_count and next if $tot_count == 0;
+        say $summary_fh join "\t", $chr, $pos, $het_count and next if $tot_count == 0;
         # next if $tot_count == 0;
-        if ( $tot_count > 0 ) {
-            my $het_ratio = sprintf "%.2f", $het_count / $tot_count;
-            # say $summary_fh join "\t", $chr, $pos, $het_count, $tot_count, $het_ratio and next unless $het_ratio < $het_ratio_max;
-            # next unless $het_ratio < $het_ratio_max;
-            my $alt_ratio = sprintf "%.2f", $alt_count / $tot_count;
-            # next unless $alt_ratio < $alt_ratio_max && $alt_ratio > $alt_ratio_min;
-            next unless $alt_ratio < $alt_ratio_max && $alt_ratio > $alt_ratio_min;
-            say $summary_fh join "\t", $chr, $pos, $ref, $alt, $ref_count,
-              $alt_count, $tot_count, $af1, $alt_ratio, $observed_ratio, $het_count, $het_ratio;
-        }
+        my $het_ratio = sprintf "%.2f", $het_count / $tot_count;
+        say $summary_fh join "\t", $chr, $pos, $het_count, $tot_count, $het_ratio and next unless $het_ratio < $het_ratio_max;
+        # next unless $het_ratio < $het_ratio_max;
+        my $alt_ratio = sprintf "%.2f", $alt_count / $tot_count;
+        next unless $alt_ratio < $alt_ratio_max && $alt_ratio > $alt_ratio_min;
+        say $summary_fh join "\t", $chr, $pos, $ref, $alt, $ref_count,
+          $alt_count, $tot_count, $af1, $alt_ratio, $observed_ratio, $het_count, $het_ratio;
 
 
         $genotype{$chr}{$pos}{ref} = $ref;
