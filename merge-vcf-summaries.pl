@@ -72,21 +72,21 @@ for my $file (@vcf_summary_files) {
 }
 
 my %counts;
-$counts{merged}   += scalar keys $merged{$_}   for keys %merged;
-$counts{repeated} += scalar keys $repeated{$_} for keys %repeated;
+$counts{merged}   += scalar keys %{ $merged{$_} }   for keys %merged;
+$counts{repeated} += scalar keys %{ $repeated{$_} } for keys %repeated;
 
 $counts{conflict} = 0;
-$counts{conflict} += scalar keys $conflict{$_} for keys %conflict;
+$counts{conflict} += scalar keys %{ $conflict{$_} } for keys %conflict;
 
 for my $chr ( sort keys %merged ) {
-    for my $pos ( sort { $a <=> $b } keys $merged{$chr}) {
+    for my $pos ( sort { $a <=> $b } keys %{ $merged{$chr} } ) {
         delete $merged{$chr}{$pos} and next
           if exists $conflict{$chr}{$pos}
           || $repeated{$chr}{$pos} < $replicate_count_min;
     }
 }
 
-$counts{merged_filtered} += scalar keys $merged{$_} for keys %merged;
+$counts{merged_filtered} += scalar keys %{ $merged{$_} } for keys %merged;
 
 if ($verbose) {
     say "merged:   ", $counts{merged};
