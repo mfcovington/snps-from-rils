@@ -35,17 +35,15 @@ while (<$vcf_fh>) {
     # ignore header
     next if m|^##|;
 
-    # calculate number of samples
-    if (m|^#CHROM|) {
-        my @col_names = split /\t/;
-        $sample_number =
-          scalar @col_names - 9;    # Nine column headers precede sample IDs
-        next;
-    }
-
     chomp;
     my ( $chr, $pos, $id, $ref, $alt, $qual, $filter, $info, $format, @samples ) =
       split /\t/;
+
+    # calculate number of samples
+    if (m|^#CHROM|) {
+        $sample_number = scalar @samples;
+        next;
+    }
 
     # ignore INDELs and multiple alternate alleles
     next unless length($ref) + length($alt) == 2;
