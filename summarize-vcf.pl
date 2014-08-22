@@ -22,56 +22,60 @@ my $options = GetOptions (
     "af1_min=f" => \$af1_min,
 );
 
-my $vcf_file = $ARGV[0];    # "10k.rep_08.E.var.flt.vcf";
-open my $vcf_fh, "<", $vcf_file;
+my @vcf_file_list = @ARGV;
 
-my $summary_file = $vcf_file . ".summary";
-open my $summary_fh, ">", $summary_file;
+for my $vcf_file (@vcf_file_list) {
+    open my $vcf_fh, "<", $vcf_file;
 
-my $sample_number;
+    my $summary_file = $vcf_file . ".summary";
+    open my $summary_fh, ">", $summary_file;
 
-while (<$vcf_fh>) {
+    my $sample_number;
 
-    # ignore header
-    next if m|^##|;
+    while (<$vcf_fh>) {
 
-    chomp;
-    my ( $chr, $pos, $id, $ref, $alt, $qual, $filter, $info, $format, @samples ) =
-      split /\t/;
+        # ignore header
+        next if m|^##|;
 
-    # calculate number of samples
-    if (m|^#CHROM|) {
-        $sample_number = scalar @samples;
-        next;
+        chomp;
+        my ( $chr, $pos, $id, $ref, $alt, $qual, $filter, $info, $format, @samples ) =
+          split /\t/;
+
+        # calculate number of samples
+        if (m|^#CHROM|) {
+            $sample_number = scalar @samples;
+            next;
+        }
+
+        # ignore INDELs and multiple alternate alleles
+        next unless length($ref) + length($alt) == 2;
+
+        my ( $af1, $dp4_ref, $dp4_alt ) =
+          $info =~ m/AF1=([^;]+);.+DP4=(\d+,\d+),(\d+,\d+)/;
+
+        # ignore AF1 values too far from 0.5
+        next unless $af1 < $af1_max && $af1 > $af1_min;
+
+        my $observed = 0;
+        for (@samples) { $observed++ unless m|:0,0,0:|; }
+        my $observed_ratio = sprintf "%.2f", $observed / $sample_number;
+
+        # ignore SNPs with coverage in too few samples
+        next if $observed_ratio < $observed_cutoff;
+
+        dp4_counter($dp4_ref);
+        dp4_counter($dp4_alt);
+        my $ref_counts = dp4_counter($dp4_ref);
+        my $alt_counts = dp4_counter($dp4_alt);
+        my $tot_counts = sum $ref_counts, $alt_counts;
+        say $summary_fh join "\t", $chr, $pos, $ref, $alt, $ref_counts,
+          $alt_counts, $tot_counts, $af1, $observed_ratio;
     }
 
-    # ignore INDELs and multiple alternate alleles
-    next unless length($ref) + length($alt) == 2;
-
-    my ( $af1, $dp4_ref, $dp4_alt ) =
-      $info =~ m/AF1=([^;]+);.+DP4=(\d+,\d+),(\d+,\d+)/;
-
-    # ignore AF1 values too far from 0.5
-    next unless $af1 < $af1_max && $af1 > $af1_min;
-
-    my $observed = 0;
-    for (@samples) { $observed++ unless m|:0,0,0:|; }
-    my $observed_ratio = sprintf "%.2f", $observed / $sample_number;
-
-    # ignore SNPs with coverage in too few samples
-    next if $observed_ratio < $observed_cutoff;
-
-    dp4_counter($dp4_ref);
-    dp4_counter($dp4_alt);
-    my $ref_counts = dp4_counter($dp4_ref);
-    my $alt_counts = dp4_counter($dp4_alt);
-    my $tot_counts = sum $ref_counts, $alt_counts;
-    say $summary_fh join "\t", $chr, $pos, $ref, $alt, $ref_counts,
-      $alt_counts, $tot_counts, $af1, $observed_ratio;
+    close $vcf_fh;
+    close $summary_fh;
 }
 
-close $vcf_fh;
-close $summary_fh;
 
 sub dp4_counter {
     my @counts = split /,/, shift;
