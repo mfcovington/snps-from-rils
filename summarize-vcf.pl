@@ -39,10 +39,11 @@ while (<$vcf_fh>) {
         my @col_names = split /\t/;
         $sample_number =
           scalar @col_names - 9;    # Nine column headers precede sample IDs
+        next;
     }
 
     chomp;
-    my ( $chr, $pos, $id, $ref, $alt, $qual, $filter, $info, @samples ) =
+    my ( $chr, $pos, $id, $ref, $alt, $qual, $filter, $info, $format, @samples ) =
       split /\t/;
 
     # ignore INDELs and multiple alternate alleles

@@ -20,8 +20,8 @@ use Getopt::Long;
 # - usage statement
 
 my $verbose             = 1;
-my $replicate_count_min = 2;
-my $ratio_min           = 0.9;
+my $replicate_count_min = 2;      # number of replicates in which SNP is ID'd
+my $ratio_min           = 0.9;    # proportion of reads matching major allele
 my $threads             = 1;
 
 my $par1_id    = "R500";
@@ -73,6 +73,8 @@ for my $file (@vcf_summary_files) {
 my %counts;
 $counts{merged}   += scalar keys $merged{$_}   for keys %merged;
 $counts{repeated} += scalar keys $repeated{$_} for keys %repeated;
+
+$counts{conflict} = 0;
 $counts{conflict} += scalar keys $conflict{$_} for keys %conflict;
 
 for my $chr ( sort keys %merged ) {
