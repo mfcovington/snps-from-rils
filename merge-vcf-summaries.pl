@@ -114,6 +114,8 @@ for my $cur_chr ( sort keys %chromosomes ) {
         chomp;
         my ( $chr, $pos, $ref, $depth, $bases, $quals ) = split /\t/;
 
+        next if $depth == 0;
+
         # ignore non-SNP positions
         next unless exists $merged{$chr}{$pos};
 
