@@ -38,8 +38,9 @@ for my $vcf_file (@vcf_file_list) {
         next if m|^##|;
 
         chomp;
-        my ( $chr, $pos, $id, $ref, $alt, $qual, $filter, $info, $format, @samples ) =
-          split /\t/;
+        my ($chr,  $pos,    $id,   $ref,    $alt,
+            $qual, $filter, $info, $format, @samples
+        ) = split /\t/;
 
         # calculate number of samples
         if (m|^#CHROM|) {
@@ -50,8 +51,8 @@ for my $vcf_file (@vcf_file_list) {
         # ignore INDELs and multiple alternate alleles
         next unless length($ref) + length($alt) == 2;
 
-        my ( $af1, $dp4_ref, $dp4_alt ) =
-          $info =~ m/AF1=([^;]+);.+DP4=(\d+,\d+),(\d+,\d+)/;
+        my ( $af1, $dp4_ref, $dp4_alt )
+            = $info =~ m/AF1=([^;]+);.+DP4=(\d+,\d+),(\d+,\d+)/;
 
         # ignore AF1 values too far from 0.5
         next unless $af1 < $af1_max && $af1 > $af1_min;
@@ -69,7 +70,7 @@ for my $vcf_file (@vcf_file_list) {
         my $alt_counts = dp4_counter($dp4_alt);
         my $tot_counts = sum $ref_counts, $alt_counts;
         say $summary_fh join "\t", $chr, $pos, $ref, $alt, $ref_counts,
-          $alt_counts, $tot_counts, $af1, $observed_ratio;
+            $alt_counts, $tot_counts, $af1, $observed_ratio;
     }
 
     close $vcf_fh;
