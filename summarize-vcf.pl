@@ -71,8 +71,6 @@ for my $vcf_file (@vcf_file_list) {
         # ignore SNPs with coverage in too few samples
         next if $observed_ratio < $observed_cutoff;
 
-        dp4_counter($dp4_ref);
-        dp4_counter($dp4_alt);
         my $ref_counts = dp4_counter($dp4_ref);
         my $alt_counts = dp4_counter($dp4_alt);
         my $tot_counts = sum $ref_counts, $alt_counts;
