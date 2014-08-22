@@ -12,19 +12,26 @@ use autodie;
 use feature 'say';
 use List::Util 'sum';
 use Getopt::Long;
+use Parallel::ForkManager;
 
+# Default options
 my $observed_cutoff = 0.1;
 my $af1_min         = 0.3;
 my $af1_max         = 1 - $af1_min;
+my $threads         = 1;
 
-my $options = GetOptions (
+my $options = GetOptions(
     "observed_cutoff=f" => \$observed_cutoff,
-    "af1_min=f" => \$af1_min,
+    "af1_min=f"         => \$af1_min,
+    "threads=i"         => \$threads,
 );
 
 my @vcf_file_list = @ARGV;
 
+my $pm = new Parallel::ForkManager($threads);
 for my $vcf_file (@vcf_file_list) {
+    $pm->start and next;
+
     open my $vcf_fh, "<", $vcf_file;
 
     my $summary_file = $vcf_file . ".summary";
@@ -75,7 +82,11 @@ for my $vcf_file (@vcf_file_list) {
 
     close $vcf_fh;
     close $summary_fh;
+    $pm->finish;
 }
+$pm->wait_all_children;
+
+exit;
 
 
 sub dp4_counter {
