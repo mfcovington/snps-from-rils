@@ -7,6 +7,7 @@
 #
 use strict;
 use warnings;
+use Log::Reproducible;
 use autodie;
 use feature 'say';
 use List::Util 'max';
@@ -19,9 +20,16 @@ use Getopt::Long;
 # - get chromosome lengths from bam header for use in SNP density stats??
 # - usage statement
 
+# RE: Compatibility with VCF files generated
+#     by different versions of samtools/bcftools
+#
+# VCF summaries are DIFFERENT depending on version #!!!
+#   - samtools 0.1.18 (r982:295)
+#   - samtools 0.1.19-44428cd
+
 my $verbose             = 1;
-my $replicate_count_min = 2;
-my $ratio_min           = 0.9;
+my $replicate_count_min = 2;      # number of replicates in which SNP is ID'd
+my $ratio_min           = 0.9;    # proportion of reads matching major allele
 my $threads             = 1;
 
 my $par1_id    = "R500";
@@ -71,19 +79,21 @@ for my $file (@vcf_summary_files) {
 }
 
 my %counts;
-$counts{merged}   += scalar keys $merged{$_}   for keys %merged;
-$counts{repeated} += scalar keys $repeated{$_} for keys %repeated;
-$counts{conflict} += scalar keys $conflict{$_} for keys %conflict;
+$counts{merged}   += scalar keys %{ $merged{$_} }   for keys %merged;
+$counts{repeated} += scalar keys %{ $repeated{$_} } for keys %repeated;
+
+$counts{conflict} = 0;
+$counts{conflict} += scalar keys %{ $conflict{$_} } for keys %conflict;
 
 for my $chr ( sort keys %merged ) {
-    for my $pos ( sort { $a <=> $b } keys $merged{$chr}) {
+    for my $pos ( sort { $a <=> $b } keys %{ $merged{$chr} } ) {
         delete $merged{$chr}{$pos} and next
           if exists $conflict{$chr}{$pos}
           || $repeated{$chr}{$pos} < $replicate_count_min;
     }
 }
 
-$counts{merged_filtered} += scalar keys $merged{$_} for keys %merged;
+$counts{merged_filtered} += scalar keys %{ $merged{$_} } for keys %merged;
 
 if ($verbose) {
     say "merged:   ", $counts{merged};
@@ -110,6 +120,8 @@ for my $cur_chr ( sort keys %chromosomes ) {
     while ( <$mpileup_fh> ) {
         chomp;
         my ( $chr, $pos, $ref, $depth, $bases, $quals ) = split /\t/;
+
+        next if $depth == 0;
 
         # ignore non-SNP positions
         next unless exists $merged{$chr}{$pos};
