@@ -20,6 +20,13 @@ use Getopt::Long;
 # - get chromosome lengths from bam header for use in SNP density stats??
 # - usage statement
 
+# RE: Compatibility with VCF files generated
+#     by different versions of samtools/bcftools
+#
+# VCF summaries are DIFFERENT depending on version #!!!
+#   - samtools 0.1.18 (r982:295)
+#   - samtools 0.1.19-44428cd
+
 my $verbose             = 1;
 my $replicate_count_min = 2;      # number of replicates in which SNP is ID'd
 my $ratio_min           = 0.9;    # proportion of reads matching major allele

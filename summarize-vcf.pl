@@ -14,6 +14,15 @@ use List::Util 'sum';
 use Getopt::Long;
 use Parallel::ForkManager;
 
+# RE: Compatibility with VCF files generated
+#     by different versions of samtools/bcftools
+#
+# VCF summaries are identical for all versions tested
+#
+# Tested combinations:
+#   - samtools 0.1.18 (r982:295) + bcftools 0.1.17-dev (r973:277)
+#   - samtools 0.1.19-44428cd    + bcftools 0.1.19-44428cd
+
 # Default options
 my $observed_cutoff = 0.1;
 my $af1_min         = 0.3;
