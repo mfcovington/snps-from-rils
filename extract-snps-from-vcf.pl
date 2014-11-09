@@ -15,7 +15,6 @@ use Getopt::Long;
 use Capture::Tiny 'capture_stderr';
 use Parallel::ForkManager;
 
-my @vcf_file_list = @ARGV;
 
 my $threads   = 2;
 my $ratio_min = 0.9;    # proportion of reads matching major allele
@@ -40,6 +39,7 @@ my $options = GetOptions(
     "alt_ratio_min=f"   => \$alt_ratio_min,
 );
 
+my @vcf_file_list = @ARGV;
 
 my $pm_extract_snps = new Parallel::ForkManager($threads);
 for my $vcf_file (@vcf_file_list) {
