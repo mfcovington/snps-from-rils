@@ -46,7 +46,13 @@ my $options = GetOptions(
     "chr_string=s"          => \$chr_string,
 );
 
-my %chromosomes = map { $_ => 1 } split /,/, $chr_string;
+my %chromosomes;
+if ( defined $chr_string ) {
+    %chromosomes = map { $_ => 1 } split /,/, $chr_string;
+}
+else {
+    %chromosomes = map { $_ => 1 } get_all_chromosomes($par1_bam);
+}
 
 my @vcf_summary_files = @ARGV;
 
@@ -160,6 +166,21 @@ sub get_alt_genotype {
     else                                             { $alt_genotype = '' }
 
     return $alt_genotype;
+}
+
+sub get_all_chromosomes {
+    my $bam = shift;
+
+    my @chromosomes;
+    my $samtools_cmd = "samtools view -H $bam";
+    open my $bam_header_fh, "-|", $samtools_cmd;
+    while (<$bam_header_fh>) {
+        next unless /^\@SQ/i;
+        /SN:([^\t]+)/;
+        push @chromosomes, $1;
+    }
+
+    return @chromosomes;
 }
 
 sub count_skips {
