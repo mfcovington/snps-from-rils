@@ -32,7 +32,7 @@ my $replicate_count_min = 2;      # number of replicates in which SNP is ID'd
 my $ratio_min           = 0.9;    # proportion of reads matching major allele
 my $threads             = 1;
 
-my ( $par1_id, $par2_id, $par1_bam, $ref_fa, $chr_string );
+my ( $par1_id, $par2_id, $par1_bam, $ref_fa, $chr_string, $skip_chr_string );
 
 my $options = GetOptions(
     "par1_id=s"             => \$par1_id,
@@ -44,6 +44,7 @@ my $options = GetOptions(
     "ratio_min=f"           => \$ratio_min,
     "threads=i"             => \$threads,
     "chr_string=s"          => \$chr_string,
+    "skip_chr_string=s"     => \$skip_chr_string,
 );
 
 my %chromosomes;
@@ -52,6 +53,10 @@ if ( defined $chr_string ) {
 }
 else {
     %chromosomes = map { $_ => 1 } get_all_chromosomes($par1_bam);
+}
+
+if ( defined $skip_chr_string ) {
+    delete $chromosomes{$_} for split /,/, $skip_chr_string;
 }
 
 my @vcf_summary_files = @ARGV;
