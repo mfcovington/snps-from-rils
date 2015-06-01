@@ -32,11 +32,7 @@ my $replicate_count_min = 2;      # number of replicates in which SNP is ID'd
 my $ratio_min           = 0.9;    # proportion of reads matching major allele
 my $threads             = 1;
 
-my $par1_id    = "R500";
-my $par2_id    = "IMB211";
-my $par1_bam   = "R500.good.bam";
-my $ref_fa     = "B.rapa_genome_sequence_0830.fa";
-my $chr_string = "A01,A02,A03,A04,A05,A06,A07,A08,A09,A10";
+my ( $par1_id, $par2_id, $par1_bam, $ref_fa, $chr_string );
 
 my $options = GetOptions(
     "par1_id=s"             => \$par1_id,
